@@ -1,0 +1,46 @@
+# ================================
+# STM32CubeIDE
+# ================================
+
+# Build output
+Debug/
+Release/
+
+# Eclipse settings
+.settings/
+
+# Launch configurations
+*.launch
+
+# Generated binaries
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+
+# Object files
+*.o
+*.d
+*.su
+
+# Temporary files
+*~
+*.bak
+*.tmp
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Keep this file
+!.gitignore
