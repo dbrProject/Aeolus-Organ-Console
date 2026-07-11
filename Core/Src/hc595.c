@@ -1,46 +1,43 @@
 /*
- * HC595.c
+ * SPDX-License-Identifier: BSD-3-Clause
  *
- *  Created on: 18 mag 2026
- *      Author: rodolfo
+ * Aeolus Organ Console Firmware
+ *
+ * Copyright (c) 2026 Rodolfo De Bastiani
+ *
+ * Author: Rodolfo De Bastiani
  */
 
 #include "main.h"
 #include "hc595.h"
-
-uint8_t shiftReg[4] = {0};
+#include "organ.h"
+#include <string.h>
 
 extern SPI_HandleTypeDef hspi2;
 
-void HC595_Update32(void)
+
+void HC595_Init(void)
 {
+	memset(stop_state, 0, sizeof(stop_state));
+    HC595_Update();
+}
+
+/*  I 74HC595 sono collegati in cascata.
+ *  Il primo byte trasmesso raggiunge l'ultimo integrato della catena.
+ *  Per mantenere stop_state[] nell'ordine logico dei registri
+ *  è necessario invertire l'ordine dei byte trasmessi.
+ */
+void HC595_Update(void)
+{
+    uint8_t spi_buffer[STOP_STATE_BYTES];
+
+    /* Inverte l'ordine dei byte per la catena degli HC595 */
+    for (uint8_t i = 0; i < STOP_STATE_BYTES; i++)
+    {
+        spi_buffer[i] = stop_state[STOP_STATE_BYTES - 1U - i];
+    }
+
     HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi2, shiftReg, 4, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi2, spi_buffer, STOP_STATE_BYTES, HAL_MAX_DELAY);
     HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, GPIO_PIN_SET);
-}
-
-void HC595_Update24(void)
-{
-    HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi2, shiftReg, 3, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(LATCH_GPIO_Port, LATCH_Pin, GPIO_PIN_SET);
-}
-
-void HC595_Write32(uint32_t value)
-{
-    shiftReg[0] = (value >> 0)  & 0xFF;
-    shiftReg[1] = (value >> 8)  & 0xFF;
-    shiftReg[2] = (value >> 16) & 0xFF;
-    shiftReg[3] = (value >> 24) & 0xFF;
-
-    HC595_Update32();
-}
-
-void HC595_Write24(uint32_t value)
-{
-    shiftReg[2] = (value >> 0)  & 0xFF;
-    shiftReg[1] = (value >> 8)  & 0xFF;
-    shiftReg[0] = (value >> 16) & 0xFF;
-
-    HC595_Update24();
 }

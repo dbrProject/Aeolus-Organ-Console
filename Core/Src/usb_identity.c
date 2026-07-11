@@ -1,5 +1,14 @@
-#include "usb_identity.h"
+/*
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Aeolus Organ Console Firmware
+ *
+ * Copyright (c) 2026 Rodolfo De Bastiani
+ *
+ * Author: Rodolfo De Bastiani
+ */
 
+#include "usb_identity.h"
 #include "stm32f401xc.h"
 #include <stddef.h>
 

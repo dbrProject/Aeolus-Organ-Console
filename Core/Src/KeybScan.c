@@ -1,141 +1,105 @@
-/*
- * KeybScan.c
- *
- *  Created on: May 13, 2026
- *      Author: rodolfo
- */
-
-#include "main.h"
-#include "tusb.h"
+#include <string.h>
 #include "KeybScan.h"
-#include "dwtDelay.h"
+#include "KeybScan_HW.h"
+#include "organ.h"
 
-const uint16_t SelectInputPins[]  = {D0_Pin, D1_Pin, D2_Pin, D3_Pin, D4_Pin, D5_Pin, D6_Pin, D7_Pin};
-const uint16_t SelectOutputPins[] = {MuxA_Pin, MuxB_Pin, MuxC_Pin};
-uint8_t Bank[MAXBANKS];
-uint8_t CurrBank = 0xFF;
-uint8_t Column = 0;
-uint8_t stableState[64];   // stato stabile (0/1)
-uint8_t debounceCnt[64];   // contatore
-//uint8_t const cable_num = 0;
-extern uint8_t cable_num;
-//static uint16_t key_state = 0;
+static KB_Keyboard_t s_Manuals[KB_NUM_KEYBOARDS];
 
-static inline void ManageKeyDown(uint8_t Key,uint8_t Col);
-static inline void ManageKeyUp(uint8_t Key,uint8_t Col);
-static inline void ReadBank(void);
-static inline void selectMuxPin(uint8_t pin);
-static inline uint8_t IsBitSet(uint8_t b, uint8_t pos);
-static inline uint8_t IsBitClear(uint8_t b, uint8_t pos);
-static void SendNoteOn(uint8_t Key);
-static void SendNoteOff(uint8_t key);
+static void KB_KeyPressed(KB_ManualId_t manual, uint8_t column, uint8_t row);
+static void KB_KeyReleased(KB_ManualId_t manual, uint8_t column, uint8_t row);
+static inline bool KB_IsBitSet(uint8_t value, uint8_t bit);
+static inline bool KB_IsBitClear(uint8_t value, uint8_t bit);
 
-void KeyScanInit(void) {
-  for (uint8_t i=0; i<MAXBANKS; i++) Bank[i]=0xFF;
-  for (uint8_t i = 0; i < 64; i++) {
-	      stableState[i] = 0;
-	      debounceCnt[i] = 0;
-  }
-}
+void KB_Init(void)
+{
+    memset(s_Manuals, 0, sizeof(s_Manuals));
 
-void KeyScan(void) {
-
-  for (uint8_t col = 0; col < 8; col++)
-	{
-	    selectMuxPin(col);
-	    DWT_Delay_us(10); // puoi ridurre!
-
-	    ReadBank();
-
-	    for (uint8_t row = 0; row < 8; row++)
-	    {
-	        uint8_t Key = (col << 3) | row;
-	        uint8_t raw = IsBitClear(CurrBank, (Key & 0x07)); // 1 = premuto
-
-	        if (raw != stableState[Key])
-	        {
-	            debounceCnt[Key]++;
-
-	            if (debounceCnt[Key] >= 3)
-	            {
-	                stableState[Key] = raw;
-	                debounceCnt[Key] = 0;
-
-	                if (raw)
-	                    ManageKeyDown(Key, col);
-	                else
-	                    ManageKeyUp(Key, col);
-	            }
-	        }
-	        else
-	        {
-	            debounceCnt[Key] = 0;
-	        }
-	    }
-	}
-}
-
-static inline void ReadBank(void) {
-  CurrBank = 0; // reset!
-
-  for(uint8_t i=0; i<8; i++)
-  {
-	  if (HAL_GPIO_ReadPin(SelectInputPinsPort,SelectInputPins[i]) == GPIO_PIN_SET) CurrBank |= (1 << i);
-	  else CurrBank &= ~ (1 << i);
-  }
-}
-
-static inline void selectMuxPin(uint8_t pin) {
-    uint32_t bsrr = 0;
-
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t manual = 0; manual < KB_NUM_KEYBOARDS; manual++)
     {
-        if (pin & (1 << i))
-            bsrr |= SelectOutputPins[i];
-        else
-            bsrr |= (SelectOutputPins[i] << 16);
+        for (uint8_t column = 0; column < KB_NUM_COLUMNS; column++)
+        {
+            //Keyboard[manual].MidiState[column] = 0xFF;
+            s_Manuals[manual].MidiState[column] = 0xFF;
+        }
     }
 
-    SelectOutputPinsPort->BSRR = bsrr;
+    KB_HW_Init();
 }
 
-uint8_t MaskKey (uint8_t Note) {
- return(1 << (Note & (0x07)));
-}
-
-static inline void ManageKeyDown(uint8_t Key,uint8_t Col) {
-  if (IsBitSet(Bank[Col],(Key & 0x07)))
-   {
-     SendNoteOn(Key);
-	 Bank[Col] &= ~(1 << (Key & 0x07));
-   }
-}
-
-static inline void ManageKeyUp(uint8_t Key,uint8_t Col) {
-  if (IsBitClear(Bank[Col],(Key & 0x07)))
-   {
-     SendNoteOff(Key);
-	 Bank[Col] |= (1 << (Key & 0x07));
-   }
-}
-
-static inline uint8_t IsBitSet(uint8_t b, uint8_t pos)
+void KB_Task(void)
 {
-	return (b & (1 << pos)) != 0;
+    uint8_t columnState;
+    bool pressed;
+
+    for (KB_ManualId_t manual = KB_UPPER; manual < KB_MANUAL_COUNT; manual++)
+    {
+        KB_HW_SelectManual(manual);
+
+        for (uint8_t column = 0; column < KB_NUM_COLUMNS; column++)
+        {
+            KB_HW_SelectColumn(column);
+            KB_HW_Delay();
+            columnState = KB_HW_ReadColumn();
+
+            for (uint8_t row = 0; row < KB_NUM_ROWS; row++)
+            {
+                uint8_t key = KB_KEY_INDEX(column, row);
+                pressed = KB_IsBitClear(columnState, row);
+
+                if (pressed != s_Manuals[manual].StableState[key])
+                {
+                    if (++s_Manuals[manual].DebounceCounter[key] >= KB_DEBOUNCE_COUNT)
+                    {
+                        s_Manuals[manual].DebounceCounter[key] = 0;
+                        s_Manuals[manual].StableState[key] = pressed;
+
+                        if (pressed)
+                        {
+                            KB_KeyPressed(manual, column, row);
+                        }
+                        else
+                        {
+                            KB_KeyReleased(manual, column, row);
+                        }
+                    }
+                }
+                else
+                {
+                    s_Manuals[manual].DebounceCounter[key] = 0;
+                }
+            }
+        }
+    }
 }
 
-static inline uint8_t IsBitClear(uint8_t b, uint8_t pos)
+static void KB_KeyPressed(KB_ManualId_t manual, uint8_t column, uint8_t row)
 {
-	return (b & (1 << pos)) == 0;
+    uint8_t mask = (1U << row);
+
+    if (s_Manuals[manual].MidiState[column] & mask)
+    {
+        Organ_KeyDown(manual, KB_KEY_INDEX(column, row));
+        s_Manuals[manual].MidiState[column] &= ~mask;
+    }
 }
 
-static void SendNoteOn(uint8_t key) {
-  uint8_t note_on[3] = { 0x90 | (MIDICHANNEL-1), key+STARTNOTE, VELOCITY };
-  tud_midi_stream_write(cable_num, note_on, 3);
+static void KB_KeyReleased(KB_ManualId_t manual, uint8_t column, uint8_t row)
+{
+    uint8_t mask = (1U << row);
+
+    if ((s_Manuals[manual].MidiState[column] & mask) == 0)
+    {
+        Organ_KeyUp(manual, KB_KEY_INDEX(column, row));
+        s_Manuals[manual].MidiState[column] |= mask;
+    }
 }
 
-static void SendNoteOff(uint8_t key) {
-  uint8_t note_off[3] = { 0x80 | (MIDICHANNEL-1), key+STARTNOTE, VELOCITY };
-  tud_midi_stream_write(cable_num, note_off, 3);
+static inline bool KB_IsBitSet(uint8_t value, uint8_t bit)
+{
+    return (value & (1U << bit)) != 0U;
 }
 
+static inline bool KB_IsBitClear(uint8_t value, uint8_t bit)
+{
+    return (value & (1U << bit)) == 0U;
+}

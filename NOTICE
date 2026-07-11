@@ -1,0 +1,13 @@
+Aeolus Organ Console Firmware
+
+Copyright (c) 2026 Rodolfo De Bastiani
+
+This project includes third-party software:
+
+- STM32Cube HAL and CMSIS
+  Copyright STMicroelectronics
+  Licensed under ST's license.
+
+- TinyUSB
+  Copyright Ha Thach and contributors
+  Licensed under the MIT License.

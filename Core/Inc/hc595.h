@@ -1,18 +1,23 @@
 /*
- * hc595.h
+ * SPDX-License-Identifier: BSD-3-Clause
  *
- *  Created on: 18 mag 2026
- *      Author: rodolfo
+ * Aeolus Organ Console Firmware
+ *
+ * Copyright (c) 2026 Rodolfo De Bastiani
+ *
+ * Author: Rodolfo De Bastiani
  */
 
 #ifndef INC_HC595_H_
 #define INC_HC595_H_
 
+#include <stdint.h>
+
+void HC595_Init(void);
+void HC595_Update(void);
+
+#endif
 
 
-void HC595_Write32(uint32_t value);
-void HC595_Write16(uint16_t value);
-void HC595_Write24(uint32_t value);
 
 
-#endif /* INC_HC595_H_ */

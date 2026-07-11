@@ -1,8 +1,11 @@
 /*
- * dwtDelay.c
+ * SPDX-License-Identifier: BSD-3-Clause
  *
- *  Created on: Apr 14, 2026
- *      Author: rodolfo
+ * Aeolus Organ Console Firmware
+ *
+ * Copyright (c) 2026 Rodolfo De Bastiani
+ *
+ * Author: Rodolfo De Bastiani
  */
 
 #include "dwtDelay.h"

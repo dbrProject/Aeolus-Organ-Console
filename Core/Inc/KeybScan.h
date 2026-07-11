@@ -1,23 +1,50 @@
-/*
- * KeybScan.h
- *
- *  Created on: May 13, 2026
- *      Author: rodolfo
- */
+#ifndef __KEYBSCAN_H
+#define __KEYBSCAN_H
 
-#ifndef INC_KEYBSCAN_H_
-#define INC_KEYBSCAN_H_
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#include "stm32f4xx_hal.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include "KeybScan_Config.h"
 
-#define SelectInputPinsPort  GPIOA
-#define SelectOutputPinsPort GPIOB
-#define MAXBANKS 8
-#define STARTNOTE 36-3
-#define MIDICHANNEL 1
-#define VELOCITY 127
+#define KB_KEY_INDEX(col,row)      (((col) << 3) | (row))
+#define KB_KEY_ROW(key)            ((key) & 0x07)
+#define KB_KEY_COLUMN(key)         ((key) >> 3)
 
-void KeyScan(void);
-void KeyScanInit(void);
 
-#endif /* INC_KEYBSCAN_H_ */
+typedef enum
+{
+    KB_UPPER = 0,
+    KB_LOWER,
+    KB_PEDAL,
+    KB_MANUAL_COUNT
+} KB_ManualId_t;
+
+
+typedef struct
+{
+    KB_ManualId_t Manual;
+    uint8_t Key;
+    bool Pressed;
+} KB_Event_t;
+
+
+typedef struct
+{
+    uint8_t StableState[KB_NUM_KEYS];
+    uint8_t DebounceCounter[KB_NUM_KEYS];
+    uint8_t MidiState[KB_NUM_COLUMNS];
+} KB_Keyboard_t;
+
+
+void KB_Init(void);
+void KB_Task(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __KEYBSCAN_H */

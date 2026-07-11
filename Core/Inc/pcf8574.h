@@ -1,8 +1,11 @@
 /*
- * pcf8574.h
+ * SPDX-License-Identifier: BSD-3-Clause
  *
- *  Created on: May 4, 2026
- *      Author: rodolfo
+ * Aeolus Organ Console Firmware
+ *
+ * Copyright (c) 2026 Rodolfo De Bastiani
+ *
+ * Author: Rodolfo De Bastiani
  */
 
 #ifndef INC_PCF8574_H_
@@ -11,19 +14,17 @@
 #include "stm32f4xx_hal.h"
 
 
-#define PCF8574_ADDR (0x20 << 1)
+//#define PCF8574_ADDR (0x20 << 1)
 #define KEYPAD_DELAY_MS 1
+#define KEY_NONE	0xFF
 
-typedef enum {
-	INTRO_A, INTRO_B, INTRO_C, BREAK,
-	MAIN_A,  MAIN_B,  MAIN_C,  MAIN_D,
-	ENDING_A, ENDING_B, ENDING_C, SYNCRO,
-	OTS, AUX_1, AUX_2, AUX_3, KEY_NONE
-	} E_KEY;
+#define KEYPAD_ROWS      4U
+#define KEYPAD_COLS      4U
+#define KEYS_PER_PCF     (KEYPAD_ROWS * KEYPAD_COLS)
 
-void keypad_scan(void);
-E_KEY key_get( void );
+void keypad_task(void);
+uint8_t key_get( void );
 void key_initialize( void );
-void RegisterScan(void);
+//void RegisterScan(void);
 
 #endif /* INC_PCF8574_H_ */

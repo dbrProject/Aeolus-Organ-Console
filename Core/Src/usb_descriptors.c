@@ -23,22 +23,9 @@
  *
  */
 
-//#include "bsp/board_api.h"
 #include "tusb.h"
 #include "device_identity.h"
 #include "usb_identity.h"
-
-/* A combination of interfaces must have a unique product id, since PC will save device driver after the first plug.
- * Same VID/PID with different interface e.g MSC (first), then CDC (later) will possibly cause system error on PC.
- *
- * Auto ProductID layout's Bitmap:
- *   [MSB]         HID | MSC | CDC          [LSB]
- */
-/*
-#define PID_MAP(itf, n)  ((CFG_TUD_##itf) ? (1 << (n)) : 0)
-#define USB_PID           (0x4000 | PID_MAP(CDC, 0) | PID_MAP(MSC, 1) | PID_MAP(HID, 2) | \
-                           PID_MAP(MIDI, 3) | PID_MAP(VENDOR, 4) )
-*/
 
 //--------------------------------------------------------------------+
 // Device Descriptors
@@ -168,26 +155,8 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
       chr_count = 1;
       break;
 
-//    case STRID_SERIAL:
-//      chr_count = board_usb_get_serial(_desc_str + 1, 32);
-//      break;
-
-//    case STRID_SERIAL:
-//    {
-//        const char* str = "000001";
-//        chr_count = strlen(str);
-//
-//        for(uint8_t i=0; i<chr_count; i++)
-//        {
-//            _desc_str[1+i] = str[i];
-//        }
-//    }
-//    break;
-
     case STRID_SERIAL:
-
-        chr_count = usb_get_serial_string(&_desc_str[1], 32);
-
+      chr_count = usb_get_serial_string(&_desc_str[1], 32);
     break;
 
     default:

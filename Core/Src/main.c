@@ -25,6 +25,7 @@
 #include "tusb.h"
 #include "dwtDelay.h"
 #include "pcf8574.h"
+#include "organ.h"
 #include "KeybScan.h"
 #include "hc595.h"
 /* USER CODE END Includes */
@@ -55,7 +56,6 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
-uint8_t const cable_num = 0;
 uint32_t LedStatus = 0;
 uint32_t PrevLedStatus = 0;
 /* USER CODE END PV */
@@ -111,9 +111,10 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   DWT_Delay_Init();
-  KeyScanInit();
+  KB_Init();
   key_initialize();	// Registri
-  HC595_Write24(0);
+  HC595_Init();
+  //HC595_Write24(0);
 
   tusb_rhport_init_t dev_init = {
   		  .role = TUSB_ROLE_DEVICE,
@@ -132,12 +133,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     tud_task();
-    KeyScan();
-    RegisterScan();
-    if(PrevLedStatus != LedStatus){
-    	HC595_Write24(LedStatus);
-    	PrevLedStatus = LedStatus;
-    }
+    KB_Task();
+    OrganTask();
+//    if(PrevLedStatus != LedStatus){
+//    	HC595_Write24(LedStatus);
+//    	PrevLedStatus = LedStatus;
+//    }
   }
   /* USER CODE END 3 */
 }
@@ -401,7 +402,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   if (htim->Instance == TIM2) {
 	  if ( ++prescaler == 50 ) {
-		    keypad_scan();
+		    keypad_task();
 	        prescaler = 0;
 	    }
 
