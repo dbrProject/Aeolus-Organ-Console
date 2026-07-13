@@ -17,7 +17,7 @@
 #include "KeybScan.h"
 
 #define LED_PER_MODULE     16U
-#define NUM_MODULES        1U
+#define NUM_MODULES        2U
 #define NUM_STOPS (LED_PER_MODULE * NUM_MODULES)
 #define STOP_STATE_BYTES ((NUM_STOPS + 7U) / 8U)
 

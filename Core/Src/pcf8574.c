@@ -19,7 +19,8 @@ extern uint32_t LedStatus;
 
 static const uint8_t pcf8574_addr[] =
 {
-    (0x20 << 1)
+    (0x20 << 1),
+	(0x21 << 1)
 };
 
 #define NUM_PCF8574   (sizeof(pcf8574_addr) / sizeof(pcf8574_addr[0]))
